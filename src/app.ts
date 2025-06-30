@@ -1,94 +1,89 @@
+import readline from "readline";
+import { Command, OptionValues } from "commander";
 import { Database } from "./database";
 import { ShipmondoService } from "./service";
+import { CliOptions } from "./types";
+import { getBalanceCommand } from "./commands/balance";
+import { getShipmentsCommand } from "./commands/shipments";
 
-const BLANCE_UPDATE_INTERVAL = 60 * 60 * 1000;
+function getOptions(values: OptionValues): CliOptions {
+  const url = values.url;
+  const username = values.username ?? process.env.SHIPMONDO_API_USERNAME;
+  const password = values.password ?? process.env.SHIPMONDO_API_PASSWORD;
+
+  if (!username || !password) {
+    throw new Error("Missing username and/or password");
+  }
+
+  return {
+    url,
+    username,
+    password,
+  };
+}
 
 async function main() {
-  const API_URL =
-    process.env.SHIPMONDO_API_URL ??
-    "https://sandbox.shipmondo.com/api/public/v3";
-  const USERNAME = process.env.SHIPMONDO_API_USERNAME;
-  const PASSWORD = process.env.SHIPMONDO_API_PASSWORD;
-
-  if (!USERNAME || !PASSWORD) {
-    throw new Error(
-      "Missing environment variables: SHIPMONDO_API_USERNAME or SHIPMONDO_API_PASSWORD",
+  const startup = new Command();
+  startup
+    .option("-u, --username <username>")
+    .option("-p, --password <password>")
+    .option(
+      "--url <url>",
+      "Shipmondo API url",
+      "https://sandbox.shipmondo.com/api/public/v3",
     );
-  }
+  startup.parse(process.argv);
 
   const database = new Database();
   await database.sync();
 
-  const service = new ShipmondoService(API_URL, USERNAME, PASSWORD);
+  const options = getOptions(startup.opts());
 
-  let newestBalance = await database.getNewestBalance();
-  if (
-    newestBalance === null ||
-    newestBalance.updatedAt.getTime() < Date.now() - BLANCE_UPDATE_INTERVAL
-  ) {
-    const balance = await service.getBalance();
-    newestBalance = await database.saveBalance(balance);
-    console.log("Set balance");
-  }
+  const service = new ShipmondoService(
+    options.url,
+    options.username,
+    options.password,
+  );
 
-  if (newestBalance !== null) {
-    console.log(
-      "Last balance:\t\t" +
-        newestBalance.balance / 100 +
-        " " +
-        newestBalance.currencyCode,
-    );
+  const context = {
+    database,
+    service,
+    options,
+  };
 
-    const changes = await database.getBalanceChange(newestBalance.updatedAt);
+  const interactive = new Command();
+  interactive.addCommand(getBalanceCommand(context));
+  interactive.addCommand(getShipmentsCommand(context));
 
-    const currentBalance =
-      newestBalance.balance +
-      changes.reduce((sum, change) => sum + change.amount, 0);
-
-    console.log(
-      "Estimated balance:\t" +
-        currentBalance / 100 +
-        " " +
-        newestBalance.currencyCode,
-    );
-  }
-
-  const shipment = await service.createShipment({
-    own_agreement: false,
-    product_code: "GLSDK_SD",
-    service_codes: "EMAIL_NT",
-    sender: {
-      name: "Nicklas",
-      address1: "Hvilehøjvej 25",
-      zipcode: "5220",
-      city: "Odense SØ",
-      country_code: "DK",
-    },
-    receiver: {
-      name: "Nicklas",
-      address1: "Hvilehøjvej 25",
-      zipcode: "5220",
-      city: "Odense SØ",
-      country_code: "DK",
-      email: "nicklas@example.com",
-    },
-    parcels: [
-      {
-        weight: 1000,
-      },
-    ],
-    automatic_select_service_point: true,
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: "> ",
   });
 
-  await database.saveShipment(shipment);
+  rl.prompt();
 
-  console.log("Created shipment " + shipment.id);
+  rl.on("line", (line) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      rl.prompt();
+      return;
+    }
 
-  await database.saveBalanceChange(
-    shipment.price,
-    false,
-    new Date(shipment.updated_at),
-  );
+    const args = trimmed.split(/\s+/);
+
+    interactive
+      .exitOverride()
+      .parseAsync(args, { from: "user" })
+      .catch((err) => {
+        console.error(err.message);
+      })
+      .finally(() => rl.prompt());
+  });
+
+  rl.on("close", () => {
+    process.exit(0);
+  });
 }
 
 main().catch(console.error);
