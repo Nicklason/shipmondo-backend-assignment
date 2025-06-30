@@ -10,7 +10,16 @@ export function getShipmentsCommand(context: CommandContext) {
     .command("list")
     .description("List shipments from the database")
     .action(async () => {
-      throw new Error("Not implemented yet");
+      const shipments = await database.getShipments();
+
+      console.log("Shipments in database:");
+
+      const table = shipments.map((shipment) => ({
+        id: shipment.id,
+        parcelCount: shipment.parcels.length,
+      }));
+
+      console.table(table);
     });
 
   command

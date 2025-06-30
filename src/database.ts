@@ -84,4 +84,11 @@ export class Database {
       { include: [ParcelModel] },
     );
   }
+
+  async getShipments(): Promise<ShipmentModel[]> {
+    return ShipmentModel.findAll({
+      include: [ParcelModel],
+      order: [["id", "DESC"]],
+    });
+  }
 }
