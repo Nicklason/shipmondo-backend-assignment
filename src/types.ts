@@ -8,3 +8,9 @@ export interface Parcel {
   pkg_no: string;
   pkg_nos: string[];
 }
+
+export interface Balance {
+  amount: number;
+  currency_code: string;
+  updated_at: string;
+}

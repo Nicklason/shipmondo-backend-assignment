@@ -49,6 +49,19 @@ async function main() {
   await database.saveShipment(shipment);
 
   console.log("Created shipment " + shipment.id);
+
+  const [newestBalance, balance] = await Promise.all([
+    database.getNewestBalance(),
+    service.getBalance(),
+  ]);
+
+  if (
+    newestBalance === null ||
+    newestBalance.updatedAt.getTime() < new Date(balance.updated_at).getTime()
+  ) {
+    await database.saveBalance(balance);
+    console.log("Updated balance");
+  }
 }
 
 main().catch(console.error);

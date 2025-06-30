@@ -7,6 +7,7 @@ import {
   HasMany,
   BelongsTo,
   ForeignKey,
+  AutoIncrement,
 } from "sequelize-typescript";
 
 export interface ShipmentAttributes {
@@ -40,4 +41,27 @@ export class ParcelModel extends Model<ParcelAttributes> {
 
   @BelongsTo(() => ShipmentModel)
   shipment!: ShipmentModel;
+}
+
+export interface BalanceAttributes {
+  balance: number;
+  currencyCode: string;
+  updatedAt: Date;
+}
+
+@Table({ timestamps: false })
+export class BalanceModel extends Model<BalanceAttributes> {
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
+  id!: number;
+
+  @Column(DataType.STRING)
+  currencyCode!: string;
+
+  @Column(DataType.DECIMAL(2))
+  balance!: number;
+
+  @Column(DataType.DATE)
+  updatedAt!: Date;
 }

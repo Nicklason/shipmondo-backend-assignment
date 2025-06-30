@@ -1,6 +1,11 @@
 import { Sequelize } from "sequelize-typescript";
-import { ParcelAttributes, ParcelModel, ShipmentModel } from "./models";
-import { Shipment } from "./types";
+import {
+  BalanceModel,
+  ParcelAttributes,
+  ParcelModel,
+  ShipmentModel,
+} from "./models";
+import { Balance, Shipment } from "./types";
 
 export class Database {
   private db: Sequelize;
@@ -9,13 +14,27 @@ export class Database {
     this.db = new Sequelize({
       dialect: "sqlite",
       storage: "db.sql",
-      models: [ShipmentModel, ParcelModel],
+      models: [ShipmentModel, ParcelModel, BalanceModel],
       logging: false,
     });
   }
 
   async sync(): Promise<void> {
     await this.db.sync();
+  }
+
+  async getNewestBalance(): Promise<BalanceModel | null> {
+    return BalanceModel.findOne({
+      order: [["updatedAt", "DESC"]],
+    });
+  }
+
+  async saveBalance(balance: Balance): Promise<void> {
+    await BalanceModel.create({
+      balance: balance.amount,
+      currencyCode: balance.currency_code,
+      updatedAt: new Date(balance.updated_at),
+    });
   }
 
   async saveShipment(shipment: Shipment): Promise<void> {
