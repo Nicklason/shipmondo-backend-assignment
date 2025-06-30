@@ -10,12 +10,12 @@ export function getBalanceCommand(context: CommandContext) {
     .command("get")
     .description("Get the estimated balance")
     .action(async () => {
-      let newestBalance = await context.database.getNewestBalance();
+      let newestBalance = await database.getNewestBalance();
 
       if (newestBalance === null) {
         console.log("No balance found, fetching from API...");
-        const balance = await context.service.getBalance();
-        newestBalance = await context.database.saveBalance(balance);
+        const balance = await service.getBalance();
+        newestBalance = await database.saveBalance(balance);
       }
 
       console.log(
