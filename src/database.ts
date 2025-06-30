@@ -1,11 +1,14 @@
 import { Sequelize } from "sequelize-typescript";
 import {
+  BalanceChangeModel,
   BalanceModel,
   ParcelAttributes,
   ParcelModel,
   ShipmentModel,
 } from "./models";
 import { Balance, Shipment } from "./types";
+import { toHundredths } from "./utils";
+import { Op } from "sequelize";
 
 export class Database {
   private db: Sequelize;
@@ -14,7 +17,7 @@ export class Database {
     this.db = new Sequelize({
       dialect: "sqlite",
       storage: "db.sql",
-      models: [ShipmentModel, ParcelModel, BalanceModel],
+      models: [ShipmentModel, ParcelModel, BalanceModel, BalanceChangeModel],
       logging: false,
     });
   }
@@ -31,9 +34,32 @@ export class Database {
 
   async saveBalance(balance: Balance): Promise<void> {
     await BalanceModel.create({
-      balance: balance.amount,
+      balance: Math.floor(balance.amount * 100),
       currencyCode: balance.currency_code,
       updatedAt: new Date(balance.updated_at),
+    });
+  }
+
+  async saveBalanceChange(
+    amount: string,
+    positive: boolean,
+    updatedAt: Date,
+  ): Promise<void> {
+    await BalanceChangeModel.create({
+      amount: (positive ? 1 : -1) * toHundredths(amount),
+      updatedAt: updatedAt,
+    });
+  }
+
+  async getBalanceChange(from?: Date): Promise<BalanceChangeModel[]> {
+    const where: { updatedAt?: object } = {};
+    if (from) {
+      where.updatedAt = { [Op.gt]: from };
+    }
+
+    return BalanceChangeModel.findAll({
+      where,
+      order: [["updatedAt", "DESC"]],
     });
   }
 

@@ -1,5 +1,6 @@
 export interface Shipment {
   id: string;
+  updated_at: string;
   price: string;
   parcels: Parcel[];
 }

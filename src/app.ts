@@ -19,6 +19,28 @@ async function main() {
 
   const service = new ShipmondoService(API_URL, USERNAME, PASSWORD);
 
+  if (newestBalance !== null) {
+    console.log(
+      "Last balance:\t\t" +
+        newestBalance.balance / 100 +
+        " " +
+        newestBalance.currencyCode,
+    );
+
+    const changes = await database.getBalanceChange(newestBalance.updatedAt);
+
+    const currentBalance =
+      newestBalance.balance +
+      changes.reduce((sum, change) => sum + change.amount, 0);
+
+    console.log(
+      "Estimated balance:\t" +
+        currentBalance / 100 +
+        " " +
+        newestBalance.currencyCode,
+    );
+  }
+
   const shipment = await service.createShipment({
     own_agreement: false,
     product_code: "GLSDK_SD",
@@ -50,18 +72,11 @@ async function main() {
 
   console.log("Created shipment " + shipment.id);
 
-  const [newestBalance, balance] = await Promise.all([
-    database.getNewestBalance(),
-    service.getBalance(),
-  ]);
-
-  if (
-    newestBalance === null ||
-    newestBalance.updatedAt.getTime() < new Date(balance.updated_at).getTime()
-  ) {
-    await database.saveBalance(balance);
-    console.log("Updated balance");
-  }
+  await database.saveBalanceChange(
+    shipment.price,
+    false,
+    new Date(shipment.updated_at),
+  );
 }
 
 main().catch(console.error);

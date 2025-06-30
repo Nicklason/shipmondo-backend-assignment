@@ -59,8 +59,27 @@ export class BalanceModel extends Model<BalanceAttributes> {
   @Column(DataType.STRING)
   currencyCode!: string;
 
-  @Column(DataType.DECIMAL(2))
+  @Column(DataType.INTEGER)
   balance!: number;
+
+  @Column(DataType.DATE)
+  updatedAt!: Date;
+}
+
+export interface BalanceChangeAttributes {
+  amount: number;
+  updatedAt: Date;
+}
+
+@Table({ timestamps: false })
+export class BalanceChangeModel extends Model<BalanceChangeAttributes> {
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
+  id!: number;
+
+  @Column(DataType.INTEGER)
+  amount!: number;
 
   @Column(DataType.DATE)
   updatedAt!: Date;
