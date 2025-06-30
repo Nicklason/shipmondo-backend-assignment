@@ -32,8 +32,8 @@ export class Database {
     });
   }
 
-  async saveBalance(balance: Balance): Promise<void> {
-    await BalanceModel.create({
+  async saveBalance(balance: Balance): Promise<BalanceModel> {
+    return BalanceModel.create({
       balance: Math.floor(balance.amount * 100),
       currencyCode: balance.currency_code,
       updatedAt: new Date(balance.updated_at),

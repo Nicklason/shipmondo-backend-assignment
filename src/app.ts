@@ -1,6 +1,8 @@
 import { Database } from "./database";
 import { ShipmondoService } from "./service";
 
+const BLANCE_UPDATE_INTERVAL = 60 * 60 * 1000;
+
 async function main() {
   const API_URL =
     process.env.SHIPMONDO_API_URL ??
@@ -18,6 +20,16 @@ async function main() {
   await database.sync();
 
   const service = new ShipmondoService(API_URL, USERNAME, PASSWORD);
+
+  let newestBalance = await database.getNewestBalance();
+  if (
+    newestBalance === null ||
+    newestBalance.updatedAt.getTime() < Date.now() - BLANCE_UPDATE_INTERVAL
+  ) {
+    const balance = await service.getBalance();
+    newestBalance = await database.saveBalance(balance);
+    console.log("Set balance");
+  }
 
   if (newestBalance !== null) {
     console.log(
