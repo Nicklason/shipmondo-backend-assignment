@@ -1,3 +1,4 @@
+import { Database } from "./database";
 import { ShipmondoService } from "./service";
 
 async function main() {
@@ -12,6 +13,9 @@ async function main() {
       "Missing environment variables: SHIPMONDO_API_USERNAME or SHIPMONDO_API_PASSWORD",
     );
   }
+
+  const database = new Database();
+  await database.sync();
 
   const service = new ShipmondoService(API_URL, USERNAME, PASSWORD);
 
@@ -42,7 +46,9 @@ async function main() {
     automatic_select_service_point: true,
   });
 
-  console.log(shipment);
+  await database.saveShipment(shipment);
+
+  console.log("Created shipment " + shipment.id);
 }
 
 main().catch(console.error);
